@@ -26,6 +26,9 @@ if __name__ == '__main__':
         clothUpper = (29, 186, 255)
         clothLower = (24, 78, 128)
         binaryImage = filter_colour(frame, clothLower, clothUpper)
+
+        bgrImage = cv2.cvtColor(binaryImage, cv2.COLOR_GRAY2BGR)
+
         # Apply an erosion + dilation to get rid of small noise:
 
         # Set kernel (structuring element) size:
@@ -40,25 +43,24 @@ if __name__ == '__main__':
         # Perform closing:
         openingImage = cv2.morphologyEx(binaryImage, cv2.MORPH_OPEN, maxKernel, None, None, opIterations, cv2.BORDER_REFLECT101)
 
-        # Calculate the moments
-        imageMoments = cv2.moments(openingImage)
+        contours, _ = cv2.findContours(openingImage, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_TC89_L1)
+        centres = []
+        for i in range(len(contours)):
+            area = cv2.contourArea(contours[i])         
+            if area < 1000:
+                continue  
+            imageMoments = cv2.moments(contours[i])
+                    # Compute centroid
+            if imageMoments["m00"] != 0:
+                cx = int(imageMoments['m10']/imageMoments['m00'])
+                cy = int(imageMoments['m01']/imageMoments['m00'])
+            else:
+                # set values as what you need in the situation
+                cx, cy = 0, 0
 
-        # Compute centroid
-        if imageMoments["m00"] != 0:
-            cx = int(imageMoments['m10']/imageMoments['m00'])
-            cy = int(imageMoments['m01']/imageMoments['m00'])
-        else:
-            # set values as what you need in the situation
-            cx, cy = 0, 0
+            centres.append((cx, cy))
+            cv2.circle(bgrImage, centres[-1], 3, (0, 255, 0), -1)
 
-
-        # Print the point:
-        print("Cx: "+str(cx))
-        print("Cy: "+str(cy))
-
-        # Draw centroid onto BGR image:
-        bgrImage = cv2.cvtColor(binaryImage, cv2.COLOR_GRAY2BGR)
-        bgrImage = cv2.line(bgrImage, (cx,cy), (cx,cy), (0,255,0), 10)
 
         cv2.imshow("centroid", bgrImage)
 
