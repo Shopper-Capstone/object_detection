@@ -8,6 +8,7 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 import sys
 import numpy as np
+from object_detection.msg import PixelsAndDepth
 
 bridge = CvBridge()
 centres = []
@@ -79,6 +80,8 @@ def image_callback(ros_image):
 def convert_depth_image(ros_image):
     global bridge
     global centres
+    global closest_object
+
      # Use cv_bridge() to convert the ROS image to OpenCV format
     try:
      #Convert the depth image using the default passthrough encoding
@@ -88,17 +91,26 @@ def convert_depth_image(ros_image):
         if(len(centres) != 0):
             for points in centres:
                 depths.append(depth_array[points[1],points[0]])
-            print(min(depths))
+            index = depths.index(min(depths))
+            closest_object = PixelsAndDepth()
+            closest_object.X = centres[index][0]
+            closest_object.Y = centres[index][1]
+            closest_object.Z = min(depths)
+            pub.publish(closest_object)
+            
+            
     except CvBridgeError as e:
         print(e)
      #Convert the depth image to a Numpy array
   
 def main(args):
+  global pub
   rospy.init_node('image_converter', anonymous=True)
   #for turtlebot3 waffle
   #image_topic="/camera/rgb/image_raw/compressed"
   #for usb cam
   #image_topic="/usb_cam/image_raw"
+  pub = rospy.Publisher("pixel_and_depth", PixelsAndDepth, queue_size=1)
   image_sub = rospy.Subscriber("/camera/color/image_raw",Image, image_callback)
   depth_sub = rospy.Subscriber("/camera/aligned_depth_to_color/image_raw", Image,callback=convert_depth_image, queue_size=1)
   try:
