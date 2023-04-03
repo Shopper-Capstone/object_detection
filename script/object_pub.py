@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import time
+import serial
 import rospy
 from sensor_msgs.msg import Image as msg_Image
 from sensor_msgs.msg import CameraInfo
@@ -8,23 +10,44 @@ from object_detection.msg import PixelsAndDepth
 import pyrealsense2 as rs2
 from geometry_msgs.msg import Vector3
 
+
 class PixelToCoord:
     def __init__(self):
         self.pub = rospy.Publisher("object_coordinate", Vector3, queue_size=1)
-        self.sub = rospy.Subscriber('/pixel_and_depth', PixelsAndDepth, self.convertPixelsToCoordinates)
-        self.sub_info = rospy.Subscriber('/camera/depth/camera_info', CameraInfo, self.imageDepthInfoCallback)
+        self.sub = rospy.Subscriber(
+            '/pixel_and_depth', PixelsAndDepth, self.convertPixelsToCoordinates)
+        self.sub_info = rospy.Subscriber(
+            '/camera/depth/camera_info', CameraInfo, self.imageDepthInfoCallback)
         self.intrinsics = None
 
-    def convertPixelsToCoordinates(self,data):
+    def convertPixelsToCoordinates(self, data):
+        serial_port = serial.Serial(
+            port="/dev/ttyUSB0",
+            baudrate=115200,
+            bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+        )
+        # Wait a second to let the port initialize
+        time.sleep(1)
+        data = '1'
+        data_send = data.encode('utf8')
+        serial_port.write(data_send)
+        print('Moving to object...')
         if self.intrinsics:
-            result = rs2.rs2_deproject_pixel_to_point(self.intrinsics, [data.X, data.Y], data.Z)
+            result = rs2.rs2_deproject_pixel_to_point(
+                self.intrinsics, [data.X, data.Y], data.Z)
             result_msg = Vector3()
             result_msg.x = result[0]
             result_msg.y = result[1]
             result_msg.z = result[2]
-            self.pub.publish(result_msg)
-
-
+            # Chassis
+            if (result_msg.z <= 240):
+                data = '5'
+                data_send = data.encode('utf8')
+                serial_port.write(data_send)
+                print('Stopping...')
+                self.pub.publish(result_msg)
 
     def imageDepthInfoCallback(self, cameraInfo):
         # import pdb; pdb.set_trace()
@@ -43,9 +66,11 @@ class PixelToCoord:
             self.intrinsics.model = rs2.distortion.kannala_brandt4
         self.intrinsics.coeffs = [i for i in cameraInfo.D]
 
+
 def main():
     listener = PixelToCoord()
     rospy.spin()
+
 
 if __name__ == '__main__':
     rospy.init_node('pixel_to_coord', anonymous=True)
