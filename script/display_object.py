@@ -8,6 +8,7 @@ from geometry_msgs.msg import Vector3
 import geometry_msgs.msg
 import tf2_ros
 import tf_conversions
+import math
 
 class CoordToTF:
     def __init__(self):
@@ -20,12 +21,12 @@ class CoordToTF:
         base = geometry_msgs.msg.TransformStamped()
 
         base.header.stamp = rospy.Time.now()
-        base.header.frame_id = "camera_link"
+        base.header.frame_id = "base_link"
         base.child_frame_id = "arm_base"
         base.transform.translation.x = 0
         base.transform.translation.y = 0
         base.transform.translation.z = 0
-        q = tf_conversions.transformations.quaternion_from_euler(0, 0, 0)
+        q = tf_conversions.transformations.quaternion_from_euler(0, 0.3927, -2.35619)
         base.transform.rotation.x = q[0]
         base.transform.rotation.y = q[1]
         base.transform.rotation.z = q[2]
@@ -37,6 +38,7 @@ class CoordToTF:
         t.transform.translation.x = data.z/1000
         t.transform.translation.y = -data.x/1000
         t.transform.translation.z = -data.y/1000
+
         q = tf_conversions.transformations.quaternion_from_euler(0, 0, 0)
         t.transform.rotation.x = q[0]
         t.transform.rotation.y = q[1]

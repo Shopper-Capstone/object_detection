@@ -36,8 +36,8 @@ def image_callback(ros_image):
     except CvBridgeError as e:
         print(e)
     #from now on, you can work exactly like with opencv
-    clothUpper = (27, 255, 255)
-    clothLower = (0, 126, 128)
+    clothUpper = (50, 255, 255)
+    clothLower = (0, 124, 128)
     binaryImage = filter_colour(cv_image, clothLower, clothUpper)
 
     bgrImage = cv2.cvtColor(binaryImage, cv2.COLOR_GRAY2BGR)
@@ -48,7 +48,7 @@ def image_callback(ros_image):
     kernelSize = 3
 
     # Set operation iterations:
-    opIterations = 3
+    opIterations = 2
 
     # Get the structuring element:
     maxKernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernelSize, kernelSize))
